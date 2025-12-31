@@ -223,4 +223,26 @@ mod tests {
 
         assert_eq!(re.as_ref(), &expected);
     }
+
+    #[test]
+    fn test_case_insensitive_regexp_extract() {
+        let values = StringArray::from(vec!["abc"; 2]);
+        let patterns = StringArray::from(vec!["^(A)(b)", "^(b)"]);
+        let flags = StringArray::from(vec!["i"; 2]);
+        let group_id = 0;
+            
+        let re = regexp_extract(&[Arc::new(values), Arc::new(patterns), Arc::new(flags)], group_id)
+            .unwrap();
+
+        println!("regexp_extract returned:\n{:?}", re);
+
+        let mut expected_builder: GenericStringBuilder<i32> = GenericStringBuilder::new();
+
+        expected_builder.append_value("a");
+        expected_builder.append_null();
+
+        let expected = expected_builder.finish();
+
+        assert_eq!(re.as_ref(), &expected);
+    }
 }
