@@ -127,9 +127,10 @@ impl ScalarUDFImpl for RegexpExtractFunc {
                 ColumnarValue::Array(a) => Some(a.len()),
             });
 
-        // FixMe: extract idx from the arguments
-        let idx = 0;
-        // and FixMe
+		let idx = match args.last() {
+			Some(ColumnarValue::Scalar(ScalarValue::Int64(Some(value)))) => *value as usize,
+			_ => return Err(datafusion_common::DataFusionError::Internal("Index not found or invalid type".to_string())),
+		};
 
         let is_scalar = len.is_none();
         let inferred_length = len.unwrap_or(1);
