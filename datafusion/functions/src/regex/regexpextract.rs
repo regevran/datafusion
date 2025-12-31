@@ -155,52 +155,45 @@ impl ScalarUDFImpl for RegexpExtractFunc {
 
 
 pub fn regexp_extract(args: &[ArrayRef], idx : usize ) -> Result<ArrayRef> {
-    // [text, pattern, idx, flags]
-    // arrow::util::pretty::print_columns("MyArgs", args).expect("Failed to print columns");
-    if args.len() == 3 {
-        return regexp_match(&args[0..3]) 
-    } else {
-        let re = regexp_match(&args[0..2])?;
+    // [[text], [pattern], [flags]], idx
+    let params = if args.len() == 3 {&args[0..3]} else {&args[0..2]};
+    let re = regexp_match(params)?;
+    let mut builder: GenericStringBuilder<i32> = GenericStringBuilder::new();
 
-        let mut builder: GenericStringBuilder<i32> = GenericStringBuilder::new();
-        //let mut builder = ListBuilder::new(elem_builder);
-
-        let list_array = re.as_list::<i32>();
-        for i in 0..list_array.len() {
-            if list_array.is_null(i) {
-                println!("Row {}: No match found", i);
-                builder.append_null();
-                continue;
-            }
-
-            // 3. Each row contains an array of capturing groups
-            // Downcast the inner value to a StringArray
-            let inner_array = list_array.value(i);
-            let captures = inner_array
-                .as_any()
-                .downcast_ref::<arrow::array::StringArray>()
-                .expect("Inner captures should be StringArray");
-
-            print!("Row {}: ", i);
-            for j in 0..captures.len() {
-                let capture_group = captures.value(j);
-                print!("Group[{}]: '{}' ", j, capture_group);
-            }
-            println!();
-
-            if idx < captures.len() {
-                builder.append_value(captures.value(idx));
-                println!("builder appended: {}", captures.value(idx))
-            } else {
-                builder.append_null();
-                println!("builder appended null");
-            }
+    let list_array = re.as_list::<i32>();
+    for i in 0..list_array.len() {
+        if list_array.is_null(i) {
+            println!("Row {}: No match found", i);
+            builder.append_null();
+            continue;
         }
 
-        let ret : ArrayRef = Arc::new(builder.finish()); 
-        return Ok(ret);
-	}
+        // 3. Each row contains an array of capturing groups
+        // Downcast the inner value to a StringArray
+        let inner_array = list_array.value(i);
+        let captures = inner_array
+            .as_any()
+            .downcast_ref::<arrow::array::StringArray>()
+            .expect("Inner captures should be StringArray");
 
+        print!("Row {}: ", i);
+        for j in 0..captures.len() {
+            let capture_group = captures.value(j);
+            print!("Group[{}]: '{}' ", j, capture_group);
+        }
+        println!();
+
+        if idx < captures.len() {
+            builder.append_value(captures.value(idx));
+            println!("builder appended: {}", captures.value(idx))
+        } else {
+            builder.append_null();
+            println!("builder appended null");
+        }
+    }
+
+    let ret : ArrayRef = Arc::new(builder.finish()); 
+    return Ok(ret);
 }
 
 #[cfg(test)]
