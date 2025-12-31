@@ -26,12 +26,14 @@ pub mod regexpcount;
 pub mod regexpinstr;
 pub mod regexplike;
 pub mod regexpmatch;
+pub mod regexpextract;
 pub mod regexpreplace;
 
 // create UDFs
 make_udf_function!(regexpcount::RegexpCountFunc, regexp_count);
 make_udf_function!(regexpinstr::RegexpInstrFunc, regexp_instr);
 make_udf_function!(regexpmatch::RegexpMatchFunc, regexp_match);
+make_udf_function!(regexpextract::RegexpExtractFunc, regexp_extract);
 make_udf_function!(regexplike::RegexpLikeFunc, regexp_like);
 make_udf_function!(regexpreplace::RegexpReplaceFunc, regexp_replace);
 
@@ -62,6 +64,16 @@ pub mod expr_fn {
         if let Some(flags) = flags {
             args.push(flags);
         };
+        super::regexp_match().call(args)
+    }
+
+    /// Returns a list of regular expression matches in a string.
+    pub fn regexp_extract(values: Expr, regex: Expr, flags: Option<Expr>, idx: i8) -> Expr {
+        let mut args = vec![values, regex];
+        if let Some(flags) = flags {
+            args.push(flags);
+        };
+        args.push(datafusion_expr::lit(idx));
         super::regexp_match().call(args)
     }
 
@@ -122,6 +134,7 @@ pub fn functions() -> Vec<Arc<datafusion_expr::ScalarUDF>> {
     vec![
         regexp_count(),
         regexp_match(),
+        regexp_extract(),
         regexp_instr(),
         regexp_like(),
         regexp_replace(),
